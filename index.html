@@ -6,6 +6,7 @@
 <title>Wenhao Zhao</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root {
     --bg: #FAFAF8;
@@ -87,6 +88,21 @@
   }
   .hero-text .subtitle a { color: var(--accent); text-decoration: none; font-weight: 500; }
   .hero-text .subtitle a:hover { text-decoration: underline; }
+
+  .hero-email {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 18px; font-size: 14px;
+  }
+  .hero-email svg { width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
+  .hero-email a {
+    color: var(--fg); text-decoration: none; font-weight: 500;
+    font-family: 'JetBrains Mono', monospace; font-size: 13.5px;
+    letter-spacing: -0.02em;
+    border-bottom: 1px dashed var(--border);
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .hero-email a:hover { color: var(--accent); border-color: var(--accent); }
+
   .hero-links { display: flex; gap: 16px; flex-wrap: wrap; }
   .hero-links a {
     display: inline-flex; align-items: center; gap: 6px;
@@ -137,6 +153,7 @@
     background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
     padding: 24px 28px; margin-bottom: 16px;
     transition: box-shadow 0.25s, border-color 0.25s; position: relative;
+    cursor: default;
   }
   .pub-card:hover { box-shadow: var(--shadow); border-color: #d0d0cc; }
   .pub-card .pub-title {
@@ -167,6 +184,60 @@
   .pub-badge.preprint { background: #FFF8E1; color: #F57F17; }
   .pub-badge.review { background: #E3F2FD; color: #1565C0; }
 
+  .pub-card[data-pdf] .pub-title {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pub-preview-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 4px;
+    background: var(--accent-light); color: var(--accent);
+    flex-shrink: 0; opacity: 0; transition: opacity 0.2s;
+  }
+  .pub-preview-icon svg { width: 13px; height: 13px; }
+  .pub-card[data-pdf]:hover .pub-preview-icon { opacity: 1; }
+
+  /* --- PAPER PREVIEW TOOLTIP --- */
+  #pub-preview {
+    position: fixed;
+    z-index: 200;
+    width: 300px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+    padding: 10px;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    transform-origin: top left;
+  }
+  #pub-preview.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  #pub-preview canvas {
+    width: 100%;
+    display: block;
+    border-radius: 6px;
+  }
+  #pub-preview .preview-loading {
+    display: flex; align-items: center; justify-content: center;
+    height: 200px; color: var(--fg-secondary); font-size: 13px;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .preview-spinner {
+    width: 20px; height: 20px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.7s linear infinite; margin-right: 8px;
+  }
+  #pub-preview .preview-caption {
+    font-size: 11px; color: var(--fg-secondary); text-align: center;
+    margin-top: 8px; font-style: italic;
+  }
+
   /* --- AWARDS --- */
   .award-list { display: flex; flex-direction: column; gap: 12px; }
   .award-item { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--fg); line-height: 1.6; }
@@ -195,11 +266,13 @@
     .hero { flex-direction: column; align-items: center; text-align: center; gap: 24px; }
     .hero-photo { width: 130px; height: 130px; }
     .hero-text h1 { font-size: 28px; }
+    .hero-email { justify-content: center; }
     .hero-links { justify-content: center; }
     .pub-badge { position: static; display: inline-block; margin-bottom: 10px; }
     nav .nav-links { gap: 16px; }
     nav .nav-links a { font-size: 12px; }
     .edu-item { flex-direction: column; gap: 4px; }
+    #pub-preview { width: 220px; }
   }
 
   section:nth-of-type(1) { animation-delay: 0.05s; }
@@ -228,16 +301,20 @@
   <!-- HERO -->
   <div class="hero">
     <div class="hero-photo">
-      <img src="./material/wenhaozhao.jpg" alt="Wenhao Zhao">
+      <img src="./wenhaozhao.jpg" alt="Wenhao Zhao">
     </div>
     <div class="hero-text">
       <h1>Wenhao Zhao</h1>
       <p class="subtitle">
-        I am a PhD student at the <strong>College of Design and Engineering, <a href="https://nus.edu.sg" target="_blank">National University of Singapore</a></strong>, supervised by Prof. <a href="#">Dianbo Liu</a>. I received my B.Eng. in Computer Science from <strong><a href="https://buaa.edu.cn" target="_blank">Beihang University</a></strong> in 2024.
+        I am a first-year Ph.D. student at the <strong>College of Design and Engineering, <a href="https://nus.edu.sg" target="_blank">National University of Singapore</a></strong>, advised by Prof.&nbsp;<a href="#">Dianbo Liu</a>. Prior to this, I obtained my B.Eng. in Computer Science from <strong><a href="https://buaa.edu.cn" target="_blank">Beihang University</a></strong> in 2024.
       </p>
       <p class="subtitle" style="margin-top:-6px;">
-        My research focuses on <strong>vector quantization</strong>, <strong>discrete representation learning</strong>, and <strong>multimodal generative models</strong>, with recent work on improving tokenization strategies for both vision and biological sequence modeling.
+        My research lies at the intersection of <strong>vector quantization</strong>, <strong>discrete representation learning</strong>, and <strong>multimodal generative models</strong>. I focus on developing principled tokenization strategies that bridge continuous and discrete representations, with applications spanning computer vision and biological sequence modeling.
       </p>
+      <div class="hero-email">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <a href="mailto:wenhaozhao@u.nus.edu">wenhaozhao@u.nus.edu</a>
+      </div>
       <div class="hero-links">
         <a href="https://scholar.google.com/citations?user=rNPkeu4AAAAJ&hl=zh-CN&authuser=2" target="_blank">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
@@ -246,10 +323,6 @@
         <a href="https://github.com/" target="_blank">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
           GitHub
-        </a>
-        <a href="mailto:your.email@example.com">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          Email
         </a>
       </div>
     </div>
@@ -278,10 +351,13 @@
 
   <!-- PUBLICATIONS -->
   <section id="publications">
-    <h2 class="section-title">Publications & Preprints</h2>
+    <h2 class="section-title">Publications &amp; Preprints</h2>
 
-    <div class="pub-card">
-      <div class="pub-title">Mitigating Premature Discretization with Progressive Quantization for Robust Vector Tokenization</div>
+    <div class="pub-card" data-pdf="./1.pdf">
+      <div class="pub-title">
+        Mitigating Premature Discretization with Progressive Quantization for Robust Vector Tokenization
+        <span class="pub-preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+      </div>
       <div class="pub-authors"><span class="me">Wenhao Zhao</span>, et al.</div>
       <div class="pub-venue">Preprint</div>
       <div class="pub-tags">
@@ -290,8 +366,11 @@
       </div>
     </div>
 
-    <div class="pub-card">
-      <div class="pub-title">FML-bench: Benchmarking Machine Learning Agents for Scientific Research</div>
+    <div class="pub-card" data-pdf="./2.pdf">
+      <div class="pub-title">
+        FML-bench: Benchmarking Machine Learning Agents for Scientific Research
+        <span class="pub-preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+      </div>
       <div class="pub-authors">Qiran Zou, Hou Hei Lam, <span class="me">Wenhao Zhao</span>, Yiming Tang, Tingting Chen, Samson Yu, Tianyi Zhang, Chang Liu, Xiangyang Ji, Dianbo Liu</div>
       <div class="pub-venue">Preprint</div>
       <div class="pub-tags">
@@ -300,8 +379,11 @@
       </div>
     </div>
 
-    <div class="pub-card">
-      <div class="pub-title">Early Quantization Shrinks Codebook: A Simple Fix for Diversity-Preserving Tokenization</div>
+    <div class="pub-card" data-pdf="./3.pdf">
+      <div class="pub-title">
+        Early Quantization Shrinks Codebook: A Simple Fix for Diversity-Preserving Tokenization
+        <span class="pub-preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+      </div>
       <div class="pub-authors"><span class="me">Wenhao Zhao</span>, Qiran Zou, Rushi Shah, Yudi Wu, Zhouhan Lin, Dianbo Liu</div>
       <div class="pub-venue">Preprint</div>
       <div class="pub-tags">
@@ -309,8 +391,11 @@
       </div>
     </div>
 
-    <div class="pub-card">
-      <div class="pub-title">Representation Collapsing Problems in Vector Quantization</div>
+    <div class="pub-card" data-pdf="./4.pdf">
+      <div class="pub-title">
+        Representation Collapsing Problems in Vector Quantization
+        <span class="pub-preview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+      </div>
       <div class="pub-authors"><span class="me">Wenhao Zhao</span>, Qiran Zou, Rushi Shah, Dianbo Liu</div>
       <div class="pub-venue">SafeGenAI Workshop — Poster</div>
       <div class="pub-tags">
@@ -347,9 +432,138 @@
 
 </main>
 
+<!-- Paper Preview Tooltip -->
+<div id="pub-preview">
+  <div class="preview-loading">
+    <div class="preview-spinner"></div>
+    Loading preview…
+  </div>
+  <canvas style="display:none;"></canvas>
+  <div class="preview-caption" style="display:none;">Page 1 — hover to preview</div>
+</div>
+
 <footer>
   &copy; 2026 Wenhao Zhao &middot; Built with care for <a href="https://pages.github.com" target="_blank">GitHub Pages</a>
 </footer>
+
+<script>
+(function() {
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const previewEl = document.getElementById('pub-preview');
+  const previewCanvas = previewEl.querySelector('canvas');
+  const previewLoading = previewEl.querySelector('.preview-loading');
+  const previewCaption = previewEl.querySelector('.preview-caption');
+  const ctx = previewCanvas.getContext('2d');
+  const pageCache = {};
+  let currentPdf = null;
+  let hideTimeout = null;
+
+  function positionPreview(cardEl) {
+    const rect = cardEl.getBoundingClientRect();
+    const pw = 300;
+    let left = rect.right + 16;
+    let top = rect.top;
+
+    if (left + pw + 16 > window.innerWidth) {
+      left = rect.left - pw - 16;
+    }
+    if (left < 8) left = 8;
+
+    const ph = previewEl.offsetHeight || 400;
+    if (top + ph > window.innerHeight - 16) {
+      top = window.innerHeight - ph - 16;
+    }
+    if (top < 8) top = 8;
+
+    previewEl.style.left = left + 'px';
+    previewEl.style.top = top + 'px';
+  }
+
+  async function renderPage(page) {
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scale = 280 / baseViewport.width;
+    const viewport = page.getViewport({ scale: scale * 2 });
+
+    previewCanvas.width = viewport.width;
+    previewCanvas.height = viewport.height;
+    previewCanvas.style.width = (viewport.width / 2) + 'px';
+    previewCanvas.style.height = (viewport.height / 2) + 'px';
+
+    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+    previewLoading.style.display = 'none';
+    previewCanvas.style.display = 'block';
+    previewCaption.style.display = 'block';
+  }
+
+  async function showPreview(cardEl) {
+    clearTimeout(hideTimeout);
+    const pdfUrl = cardEl.dataset.pdf;
+    if (!pdfUrl) return;
+
+    previewLoading.style.display = 'flex';
+    previewCanvas.style.display = 'none';
+    previewCaption.style.display = 'none';
+    positionPreview(cardEl);
+    previewEl.classList.add('visible');
+
+    if (pageCache[pdfUrl]) {
+      await renderPage(pageCache[pdfUrl]);
+      positionPreview(cardEl);
+      return;
+    }
+
+    try {
+      const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+      const page = await pdf.getPage(1);
+      pageCache[pdfUrl] = page;
+      if (currentPdf === pdfUrl) {
+        await renderPage(page);
+        positionPreview(cardEl);
+      }
+    } catch (e) {
+      previewLoading.innerHTML = '<span style="color:var(--fg-secondary);font-size:12px;">Preview unavailable</span>';
+    }
+  }
+
+  function hidePreview() {
+    hideTimeout = setTimeout(function() {
+      previewEl.classList.remove('visible');
+      currentPdf = null;
+    }, 80);
+  }
+
+  document.querySelectorAll('.pub-card[data-pdf]').forEach(function(card) {
+    card.addEventListener('mouseenter', function() {
+      currentPdf = this.dataset.pdf;
+      showPreview(this);
+    });
+
+    card.addEventListener('mouseleave', function() {
+      hidePreview();
+    });
+
+    card.addEventListener('touchstart', function(e) {
+      if (previewEl.classList.contains('visible') && currentPdf === this.dataset.pdf) {
+        hidePreview();
+      } else {
+        currentPdf = this.dataset.pdf;
+        showPreview(this);
+      }
+    }, { passive: true });
+  });
+
+  window.addEventListener('scroll', function() {
+    if (previewEl.classList.contains('visible')) {
+      var activeCard = document.querySelector('.pub-card[data-pdf="' + currentPdf + '"]');
+      if (activeCard) positionPreview(activeCard);
+    }
+  }, { passive: true });
+})();
+</script>
 
 </body>
 </html>
